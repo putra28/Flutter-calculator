@@ -15,7 +15,6 @@ class CalculatorApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        fontFamily: 'Clash Grotesk',
         brightness: Brightness.dark,
         scaffoldBackgroundColor: Colors.black,
         textTheme: GoogleFonts.fredokaTextTheme(textTheme).copyWith(
@@ -131,6 +130,14 @@ class _CalculatorPageState extends State<CalculatorPage> {
             left: 20,
             child: IconButton(
               icon: Icon(_isDarkMode ? Icons.wb_sunny : Icons.nights_stay, color: _isDarkMode ? Colors.white : Colors.black),
+              onPressed: _toggleTheme,
+            ),
+          ),
+          Positioned(
+            top: 20,
+            right: 20,
+            child: IconButton(
+              icon: Icon(Icons.functions, color: _isDarkMode ? Colors.white : Colors.black),
               onPressed: _toggleTheme,
             ),
           ),
