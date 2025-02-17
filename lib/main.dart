@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:math_expressions/math_expressions.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter/services.dart';
+import 'package:top_snackbar_flutter/custom_snack_bar.dart';
+import 'package:top_snackbar_flutter/safe_area_values.dart';
+import 'package:top_snackbar_flutter/tap_bounce_container.dart';
+import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
 void main() {
   runApp(CalculatorApp());
@@ -8,7 +13,7 @@ void main() {
 
 class CalculatorApp extends StatelessWidget {
   const CalculatorApp({super.key});
-  
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -18,7 +23,7 @@ class CalculatorApp extends StatelessWidget {
         brightness: Brightness.dark,
         scaffoldBackgroundColor: Colors.black,
         textTheme: GoogleFonts.fredokaTextTheme(textTheme).copyWith(
-        bodyLarge: GoogleFonts.fredoka(textStyle: textTheme.bodyLarge),
+          bodyLarge: GoogleFonts.fredoka(textStyle: textTheme.bodyLarge),
         ),
       ),
       home: CalculatorPage(),
@@ -32,6 +37,7 @@ class CalculatorPage extends StatefulWidget {
 }
 
 class _CalculatorPageState extends State<CalculatorPage> {
+  late AnimationController localAnimationController;
   String _expression = "";
   String _result = "";
   bool _isDarkMode = true; // Variabel untuk menyimpan status tema
@@ -96,27 +102,42 @@ class _CalculatorPageState extends State<CalculatorPage> {
               Expanded(
                 child: Container(
                   alignment: Alignment.bottomRight,
-                  padding: EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(24),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.end,
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      AnimatedSwitcher(
-                        duration: Duration(milliseconds: 200),
-                        transitionBuilder: (Widget child, Animation<double> animation) {
-                          return FadeTransition(opacity: animation, child: child);
+                      GestureDetector(
+                        onTap: () {
+                          Clipboard.setData(ClipboardData(text: _expression));
+                          AnimationController localAnimationController;
+                          showTopSnackBar(
+                            Overlay.of(context),
+                            CustomSnackBar.success(
+                              message: "Copied!!",
+                            ),
+                            displayDuration: const Duration(milliseconds: 30),
+                            onAnimationControllerInit: (controller) =>
+                                localAnimationController = controller,
+                          );
+
                         },
-                        child: Text(
-                          _expression,
-                          key: ValueKey(_expression),
-                          style: TextStyle(fontSize: 50, color: _isDarkMode ? Colors.white : Colors.black),
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 140),
+                          transitionBuilder:
+                              (Widget child, Animation<double> animation) {
+                            return FadeTransition(
+                                opacity: animation, child: child);
+                          },
+                          child: Text(
+                            _expression,
+                            key: ValueKey(_expression),
+                            style: TextStyle(
+                              fontSize: 50,
+                              color: _isDarkMode ? Colors.white : Colors.black,
+                            ),
+                          ),
                         ),
-                      ),
-                      AnimatedSwitcher(
-                        duration: Duration(milliseconds: 200),
-                        transitionBuilder: (Widget child, Animation<double> animation) {
-                          return FadeTransition(opacity: animation, child: child);
-                        },
                       ),
                     ],
                   ),
@@ -129,7 +150,8 @@ class _CalculatorPageState extends State<CalculatorPage> {
             top: 20,
             left: 20,
             child: IconButton(
-              icon: Icon(_isDarkMode ? Icons.wb_sunny : Icons.nights_stay, color: _isDarkMode ? Colors.white : Colors.black),
+              icon: Icon(_isDarkMode ? Icons.wb_sunny : Icons.nights_stay,
+                  color: _isDarkMode ? Colors.white : Colors.black),
               onPressed: _toggleTheme,
             ),
           ),
@@ -137,11 +159,42 @@ class _CalculatorPageState extends State<CalculatorPage> {
             top: 20,
             right: 20,
             child: IconButton(
-              icon: Icon(Icons.functions, color: _isDarkMode ? Colors.white : Colors.black),
-              onPressed: _toggleTheme,
+              icon: Icon(Icons.functions,
+                  color: _isDarkMode ? Colors.white : Colors.black),
+              onPressed: () {}, // Disable button
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Container buildButton(BuildContext context, String text) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).primaryColor,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.4),
+            spreadRadius: 6,
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+        child: Center(
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -164,7 +217,9 @@ class _CalculatorPageState extends State<CalculatorPage> {
           children: row.map((btn) {
             if (btn == "=" && rowIndex >= 3) {
               return Expanded(
-                child: _buildButton(btn, color: const Color.fromARGB(255, 51, 119, 54), heightFactor: 1),
+                child: _buildButton(btn,
+                    color: const Color.fromARGB(255, 51, 119, 54),
+                    heightFactor: 1),
               );
             } else if (btn.isEmpty) {
               return SizedBox(width: 0); // Empty space for alignment
@@ -173,7 +228,12 @@ class _CalculatorPageState extends State<CalculatorPage> {
                 btn,
                 color: btn == "C"
                     ? Colors.red
-                    : (btn == "÷" || btn == "x" || btn == "-" || btn == "+" || btn == "DEL" || btn == "%")
+                    : (btn == "÷" ||
+                            btn == "x" ||
+                            btn == "-" ||
+                            btn == "+" ||
+                            btn == "DEL" ||
+                            btn == "%")
                         ? Colors.green
                         : const Color.fromARGB(0, 255, 255, 255),
               );
@@ -191,7 +251,8 @@ class _CalculatorPageState extends State<CalculatorPage> {
         child: ElevatedButton(
           onPressed: () => _onButtonPressed(value),
           style: ElevatedButton.styleFrom(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             padding: EdgeInsets.symmetric(vertical: 24.0 * heightFactor),
             backgroundColor: color ?? const Color.fromARGB(0, 66, 66, 66),
             foregroundColor: const Color.fromARGB(255, 255, 255, 255),
