@@ -1,4 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <user-permission android:name="android.permissiong.INTERNET" />
+    <user-permission android:name="android.permissiong.SYSTEM_ALERT_WINDOW" />
+    <user-permission android:name="android.permissiong.DISABLE_KEYGUARD" />
+    <user-permission android:name="android.permissiong.WRITE_SETTINGS" />
     <application
         android:label="Math Calculator"
         android:name="${applicationName}"
