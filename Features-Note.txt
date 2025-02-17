@@ -1,0 +1,13 @@
+done:
+- Tema Gelap & Terang – Pilihan tema agar nyaman digunakan di berbagai kondisi pencahayaan.
+
+ongoing:
+- Mode Ilmiah – Tambahkan fungsi trigonometri, logaritma, eksponensial, dll.
+- Salin & Tempel Hasil – Memudahkan pengguna untuk menyalin hasil perhitungan.
+- Shortcut Keyboard – Jika aplikasi mendukung input dari keyboard, tambahkan shortcut untuk operasi cepat.
+- Persentase & Kurs Mata Uang – Bisa menambahkan fitur persentase dan konversi mata uang real-time (tanpa API berbayar bisa pakai data lokal).
+- Grafik Visualisasi – Jika ingin lebih advance, tambahkan grafik untuk persamaan matematika.
+- Fitur Suara – Kalkulator bisa membaca hasil dengan suara.
+- Custom Shortcut – Pengguna bisa menyimpan rumus favorit mereka.
+- Unit Converter – Konversi satuan panjang, berat, suhu, dll.
+- Undo & Redo – Bisa membatalkan atau mengulang langkah terakhir.
