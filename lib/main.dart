@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 void main() {
   runApp(CalculatorApp());
 }
+
 class CalculatorApp extends StatelessWidget {
   const CalculatorApp({super.key});
   
@@ -34,6 +35,7 @@ class CalculatorPage extends StatefulWidget {
 class _CalculatorPageState extends State<CalculatorPage> {
   String _expression = "";
   String _result = "";
+  bool _isDarkMode = true; // Variabel untuk menyimpan status tema
 
   void _evaluateExpression() {
     try {
@@ -78,41 +80,60 @@ class _CalculatorPageState extends State<CalculatorPage> {
     });
   }
 
+  void _toggleTheme() {
+    setState(() {
+      _isDarkMode = !_isDarkMode; // Ganti status tema
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
+      backgroundColor: _isDarkMode ? Colors.black : Colors.white,
+      body: Stack(
         children: [
-          Expanded(
-            child: Container(
-              alignment: Alignment.bottomRight,
-              padding: EdgeInsets.all(24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  AnimatedSwitcher(
-                    duration: Duration(milliseconds: 200),
-                    transitionBuilder: (Widget child, Animation<double> animation) {
-                      return FadeTransition(opacity: animation, child: child);
-                    },
-                    child: Text(
-                      _expression,
-                      key: ValueKey(_expression),
-                      style: TextStyle(fontSize: 50, color: Colors.white),
-                    ),
+          Column(
+            children: [
+              Expanded(
+                child: Container(
+                  alignment: Alignment.bottomRight,
+                  padding: EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      AnimatedSwitcher(
+                        duration: Duration(milliseconds: 200),
+                        transitionBuilder: (Widget child, Animation<double> animation) {
+                          return FadeTransition(opacity: animation, child: child);
+                        },
+                        child: Text(
+                          _expression,
+                          key: ValueKey(_expression),
+                          style: TextStyle(fontSize: 50, color: _isDarkMode ? Colors.white : Colors.black),
+                        ),
+                      ),
+                      AnimatedSwitcher(
+                        duration: Duration(milliseconds: 200),
+                        transitionBuilder: (Widget child, Animation<double> animation) {
+                          return FadeTransition(opacity: animation, child: child);
+                        },
+                      ),
+                    ],
                   ),
-                  AnimatedSwitcher(
-                    duration: Duration(milliseconds: 200),
-                    transitionBuilder: (Widget child, Animation<double> animation) {
-                      return FadeTransition(opacity: animation, child: child);
-                    },
-                  ),
-                ],
+                ),
               ),
+              _buildButtons(),
+            ],
+          ),
+          Positioned(
+            top: 20,
+            left: 20,
+            child: IconButton(
+              icon: Icon(_isDarkMode ? Icons.wb_sunny : Icons.nights_stay, color: _isDarkMode ? Colors.white : Colors.black),
+              onPressed: _toggleTheme,
             ),
           ),
-          _buildButtons(),
         ],
       ),
     );
@@ -136,12 +157,19 @@ class _CalculatorPageState extends State<CalculatorPage> {
           children: row.map((btn) {
             if (btn == "=" && rowIndex >= 3) {
               return Expanded(
-                child: _buildButton(btn, color: Colors.green, heightFactor: 1),
+                child: _buildButton(btn, color: const Color.fromARGB(255, 51, 119, 54), heightFactor: 1),
               );
             } else if (btn.isEmpty) {
               return SizedBox(width: 0); // Empty space for alignment
             } else {
-              return _buildButton(btn, color: btn == "C" ? Colors.red : const Color.fromARGB(0, 255, 255, 255));
+              return _buildButton(
+                btn,
+                color: btn == "C"
+                    ? Colors.red
+                    : (btn == "÷" || btn == "x" || btn == "-" || btn == "+" || btn == "DEL" || btn == "%")
+                        ? Colors.green
+                        : const Color.fromARGB(0, 255, 255, 255),
+              );
             }
           }).toList(),
         );
@@ -161,8 +189,13 @@ class _CalculatorPageState extends State<CalculatorPage> {
             backgroundColor: color ?? const Color.fromARGB(0, 66, 66, 66),
             foregroundColor: const Color.fromARGB(255, 255, 255, 255),
           ),
-          // child: Text(value, style: TextStyle(fontSize: 24.0)),
-          child: Text(value, style: TextStyle(fontSize: 24.0, color: (value == "÷" || value == "x" || value == "-" || value == "+" || value == "DEL") ? Colors.green : Colors.white)),
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 24.0,
+              color: (_isDarkMode ? Colors.white : Colors.black),
+            ),
+          ),
         ),
       ),
     );
