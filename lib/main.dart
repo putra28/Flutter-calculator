@@ -4,6 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'dart:ui';
 
 void main() {
   runApp(CalculatorApp());
@@ -43,20 +46,47 @@ class _CalculatorPageState extends State<CalculatorPage> {
   String _expression = "";
   String _result = "";
   bool _isDarkMode = true;
-  bool _isPortraitMode = true;
+  bool _isHistoryOpen = false;
+  List<String> _history = [];
 
-  void _toggleOrientation() {
+  @override
+  void initState() {
+    super.initState();
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      _isPortraitMode = !_isPortraitMode;
-      SystemChrome.setPreferredOrientations(
-        _isPortraitMode
-            ? [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]
-            : [
-                DeviceOrientation.landscapeLeft,
-                DeviceOrientation.landscapeRight
-              ],
-      );
+      _history = prefs.getStringList('history') ?? [];
     });
+  }
+
+  Future<void> _saveHistory() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('history', _history);
+  }
+
+  void _addToHistory(String expression, String result) {
+    String entry = "$expression = $result";
+    setState(() {
+      _history.insert(0, entry);
+    });
+    _saveHistory();
+  }
+
+  void _clearHistory() {
+    setState(() {
+      _history.clear();
+    });
+    _saveHistory();
+  }
+
+  void _removeHistoryItem(int index) {
+    setState(() {
+      _history.removeAt(index);
+    });
+    _saveHistory();
   }
 
   void _evaluateExpression() {
@@ -67,6 +97,26 @@ class _CalculatorPageState extends State<CalculatorPage> {
         ContextModel cm = ContextModel();
         double eval = exp.evaluate(EvaluationType.REAL, cm);
         _result = eval % 1 == 0 ? eval.toInt().toString() : eval.toString();
+      }
+    } catch (e) {
+      if (!_expression.contains(RegExp(r'[0-9]$'))) {
+        _result = _expression;
+      } else {
+        _result = "Error";
+      }
+    }
+    setState(() {});
+  }
+
+  void _evaluateExpressionwithHistory() {
+    try {
+      if (_expression.isNotEmpty) {
+        Parser p = Parser();
+        Expression exp = p.parse(_expression.replaceAll('x', '*'));
+        ContextModel cm = ContextModel();
+        double eval = exp.evaluate(EvaluationType.REAL, cm);
+        _result = eval % 1 == 0 ? eval.toInt().toString() : eval.toString();
+        _addToHistory(_expression, _result);
       }
     } catch (e) {
       if (!_expression.contains(RegExp(r'[0-9]$'))) {
@@ -93,12 +143,19 @@ class _CalculatorPageState extends State<CalculatorPage> {
         }
       } else if (value == "=") {
         if (_result.isNotEmpty) {
+          _evaluateExpressionwithHistory();
           _expression = _result;
         }
       } else {
         _expression += value;
       }
       _evaluateExpression();
+    });
+  }
+
+  void _toggleHistory() {
+    setState(() {
+      _isHistoryOpen = !_isHistoryOpen;
     });
   }
 
@@ -111,9 +168,8 @@ class _CalculatorPageState extends State<CalculatorPage> {
   @override
   Widget build(BuildContext context) {
     double height = MediaQuery.of(context).size.height;
-    
     return Scaffold(
-      backgroundColor: _isDarkMode ? const Color.fromARGB(255, 47, 55, 73) : const Color.fromARGB(255, 211, 211, 211),
+      backgroundColor: _isDarkMode ? const Color.fromARGB(255, 47, 55, 73) : const Color.fromARGB(255, 235, 235, 235),
       body: Stack(
         children: [
           Column(
@@ -139,19 +195,21 @@ class _CalculatorPageState extends State<CalculatorPage> {
                                 localAnimationController = controller,
                           );
                         },
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 140),
-                          transitionBuilder:
-                              (Widget child, Animation<double> animation) {
-                            return FadeTransition(
-                                opacity: animation, child: child);
-                          },
-                          child: Text(
-                            _expression,
-                            key: ValueKey(_expression),
-                            style: TextStyle(
-                              fontSize: height * 0.07,
-                              color: _isDarkMode ? Colors.white : Colors.black,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          reverse: true, // Agar teks terbaru tetap terlihat di ujung kanan
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 140),
+                            transitionBuilder: (Widget child, Animation<double> animation) {
+                              return FadeTransition(opacity: animation, child: child);
+                            },
+                            child: Text(
+                              _expression,
+                              key: ValueKey(_expression),
+                              style: TextStyle(
+                                fontSize: height * 0.07,
+                                color: _isDarkMode ? Colors.white : Colors.black,
+                              ),
                             ),
                           ),
                         ),
@@ -178,10 +236,59 @@ class _CalculatorPageState extends State<CalculatorPage> {
             child: IconButton(
               icon: Icon(Icons.functions,
                   color: _isDarkMode ? Colors.white : Colors.black),
-              onPressed: _toggleOrientation,
+              onPressed: _toggleHistory,
             ),
           ),
+          _isHistoryOpen ? _buildHistoryPanel() : SizedBox(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildHistoryPanel() {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Container(
+        width: 300,
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(15),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 20, left: 8, right: 8),
+                  child: Text("History", style: TextStyle(color: Colors.white, fontSize: 20)),
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: _history.length,
+                    itemBuilder: (context, index) {
+                      return ListTile(
+                        title: Text(_history[index], style: TextStyle(color: Colors.white)),
+                        trailing: IconButton(
+                          icon: Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => _removeHistoryItem(index),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: TextButton(
+                    onPressed: _clearHistory,
+                    child: Text("Hapus semua", style: TextStyle(color: Colors.red, fontSize: 16)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -272,9 +379,13 @@ class _CalculatorPageState extends State<CalculatorPage> {
             value,
             style: TextStyle(
               fontSize: 24.0,
-              color: ((value == "+" || value == "x" || value == "-" || value == "+" || value == "÷" || value == "%") ? Colors.green
-                      : (value == "DEL") ? Colors.red
-                      :_isDarkMode ? Colors.white : Colors.black),
+              color: (_isDarkMode ? 
+                          (value == "+" || value == "x" || value == "-" || value == "+" || value == "÷" || value == "%") ? Colors.green
+                          : (value == "DEL") ? Colors.red 
+                          : Colors.white
+                          : (value == "+" || value == "x" || value == "-" || value == "+" || value == "÷" || value == "%") ? const Color.fromARGB(255, 41, 126, 43) 
+                          : (value == "DEL") ? const Color.fromARGB(255, 179, 47, 38) 
+                          :Colors.black),
             ),
           ),
         ),
