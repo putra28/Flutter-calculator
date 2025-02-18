@@ -14,14 +14,18 @@ class CalculatorApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    double height = MediaQuery.of(context).size.height;
     final textTheme = Theme.of(context).textTheme;
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: Colors.black,
+        scaffoldBackgroundColor: const Color.fromARGB(255, 43, 39, 44),
         textTheme: GoogleFonts.fredokaTextTheme(textTheme).copyWith(
-          bodyLarge: GoogleFonts.fredoka(textStyle: textTheme.bodyLarge),
+          bodyLarge: GoogleFonts.fredoka(
+            textStyle: textTheme.bodyLarge,
+            fontSize: height * 0.05,
+          ),
         ),
       ),
       home: CalculatorPage(),
@@ -47,7 +51,10 @@ class _CalculatorPageState extends State<CalculatorPage> {
       SystemChrome.setPreferredOrientations(
         _isPortraitMode
             ? [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]
-            : [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight],
+            : [
+                DeviceOrientation.landscapeLeft,
+                DeviceOrientation.landscapeRight
+              ],
       );
     });
   }
@@ -103,8 +110,10 @@ class _CalculatorPageState extends State<CalculatorPage> {
 
   @override
   Widget build(BuildContext context) {
+    double height = MediaQuery.of(context).size.height;
+    
     return Scaffold(
-      backgroundColor: _isDarkMode ? Colors.black : Colors.white,
+      backgroundColor: _isDarkMode ? const Color.fromARGB(255, 47, 55, 73) : const Color.fromARGB(255, 211, 211, 211),
       body: Stack(
         children: [
           Column(
@@ -120,7 +129,6 @@ class _CalculatorPageState extends State<CalculatorPage> {
                       GestureDetector(
                         onTap: () {
                           Clipboard.setData(ClipboardData(text: _expression));
-                          AnimationController localAnimationController;
                           showTopSnackBar(
                             Overlay.of(context),
                             CustomSnackBar.success(
@@ -128,9 +136,8 @@ class _CalculatorPageState extends State<CalculatorPage> {
                             ),
                             displayDuration: const Duration(milliseconds: 30),
                             onAnimationControllerInit: (controller) =>
-                              localAnimationController = controller,
+                                localAnimationController = controller,
                           );
-
                         },
                         child: AnimatedSwitcher(
                           duration: const Duration(milliseconds: 140),
@@ -143,7 +150,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
                             _expression,
                             key: ValueKey(_expression),
                             style: TextStyle(
-                              fontSize: 50,
+                              fontSize: height * 0.07,
                               color: _isDarkMode ? Colors.white : Colors.black,
                             ),
                           ),
@@ -180,6 +187,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
   }
 
   Container buildButton(BuildContext context, String text) {
+    double height = MediaQuery.of(context).size.height;
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).primaryColor,
@@ -198,9 +206,9 @@ class _CalculatorPageState extends State<CalculatorPage> {
         child: Center(
           child: Text(
             text,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
-              fontSize: 16,
+              fontSize: height * 0.05,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -238,13 +246,6 @@ class _CalculatorPageState extends State<CalculatorPage> {
                 btn,
                 color: btn == "C"
                     ? Colors.red
-                    : (btn == "÷" ||
-                            btn == "x" ||
-                            btn == "-" ||
-                            btn == "+" ||
-                            btn == "DEL" ||
-                            btn == "%")
-                        ? Colors.green
                         : const Color.fromARGB(0, 255, 255, 255),
               );
             }
@@ -271,7 +272,9 @@ class _CalculatorPageState extends State<CalculatorPage> {
             value,
             style: TextStyle(
               fontSize: 24.0,
-              color: (_isDarkMode ? Colors.white : Colors.black),
+              color: ((value == "+" || value == "x" || value == "-" || value == "+" || value == "÷" || value == "%") ? Colors.green
+                      : (value == "DEL") ? Colors.red
+                      :_isDarkMode ? Colors.white : Colors.black),
             ),
           ),
         ),
@@ -279,3 +282,4 @@ class _CalculatorPageState extends State<CalculatorPage> {
     );
   }
 }
+
