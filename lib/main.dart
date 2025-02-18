@@ -3,8 +3,6 @@ import 'package:math_expressions/math_expressions.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
-import 'package:top_snackbar_flutter/safe_area_values.dart';
-import 'package:top_snackbar_flutter/tap_bounce_container.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
 void main() {
@@ -40,7 +38,19 @@ class _CalculatorPageState extends State<CalculatorPage> {
   late AnimationController localAnimationController;
   String _expression = "";
   String _result = "";
-  bool _isDarkMode = true; // Variabel untuk menyimpan status tema
+  bool _isDarkMode = true;
+  bool _isPortraitMode = true;
+
+  void _toggleOrientation() {
+    setState(() {
+      _isPortraitMode = !_isPortraitMode;
+      SystemChrome.setPreferredOrientations(
+        _isPortraitMode
+            ? [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]
+            : [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight],
+      );
+    });
+  }
 
   void _evaluateExpression() {
     try {
@@ -118,7 +128,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
                             ),
                             displayDuration: const Duration(milliseconds: 30),
                             onAnimationControllerInit: (controller) =>
-                                localAnimationController = controller,
+                              localAnimationController = controller,
                           );
 
                         },
@@ -161,7 +171,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
             child: IconButton(
               icon: Icon(Icons.functions,
                   color: _isDarkMode ? Colors.white : Colors.black),
-              onPressed: () {}, // Disable button
+              onPressed: _toggleOrientation,
             ),
           ),
         ],
