@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import 'dart:ui';
 
 void main() {
@@ -82,50 +81,29 @@ class _CalculatorPageState extends State<CalculatorPage> {
     _saveHistory();
   }
 
-  void _removeHistoryItem(int index) {
-    setState(() {
-      _history.removeAt(index);
-    });
-    _saveHistory();
-  }
-
   void _evaluateExpression() {
     try {
       if (_expression.isNotEmpty) {
         Parser p = Parser();
-        Expression exp = p.parse(_expression.replaceAll('x', '*'));
+        Expression exp = p.parse(_expression.replaceAll('x', '*').replaceAll('÷', '/'));
         ContextModel cm = ContextModel();
         double eval = exp.evaluate(EvaluationType.REAL, cm);
+
+        // Menampilkan hasil sebagai integer jika tidak ada desimal
         _result = eval % 1 == 0 ? eval.toInt().toString() : eval.toString();
       }
     } catch (e) {
-      if (!_expression.contains(RegExp(r'[0-9]$'))) {
-        _result = _expression;
-      } else {
-        _result = "Error";
-      }
+      _result = "Error";
     }
     setState(() {});
   }
 
-  void _evaluateExpressionwithHistory() {
-    try {
-      if (_expression.isNotEmpty) {
-        Parser p = Parser();
-        Expression exp = p.parse(_expression.replaceAll('x', '*'));
-        ContextModel cm = ContextModel();
-        double eval = exp.evaluate(EvaluationType.REAL, cm);
-        _result = eval % 1 == 0 ? eval.toInt().toString() : eval.toString();
-        _addToHistory(_expression, _result);
-      }
-    } catch (e) {
-      if (!_expression.contains(RegExp(r'[0-9]$'))) {
-        _result = _expression;
-      } else {
-        _result = "Error";
-      }
+  void _evaluateExpressionWithHistory() {
+    _evaluateExpression();
+    if (_result != "Error") {
+      _addToHistory(_expression, _result);
+      _expression = _result;
     }
-    setState(() {});
   }
 
   void _onButtonPressed(String value) {
@@ -133,18 +111,17 @@ class _CalculatorPageState extends State<CalculatorPage> {
       if (value == "C") {
         _expression = "";
         _result = "";
-      } else if (value == "DEL") {
-        if (_expression.isNotEmpty) {
-          _expression = _expression.substring(0, _expression.length - 1);
-        }
       } else if (value == "%") {
         if (_expression.isNotEmpty) {
           _expression += "/100";
         }
+      } else if (value == "DEL") {
+        if (_expression.isNotEmpty) {
+          _expression = _expression.substring(0, _expression.length - 1);
+        }
       } else if (value == "=") {
-        if (_result.isNotEmpty) {
-          _evaluateExpressionwithHistory();
-          _expression = _result;
+        if (_expression.isNotEmpty) {
+          _evaluateExpressionWithHistory();
         }
       } else {
         _expression += value;
@@ -176,8 +153,8 @@ class _CalculatorPageState extends State<CalculatorPage> {
             children: [
               Expanded(
                 child: Container(
-                  alignment: Alignment.bottomRight,
                   padding: const EdgeInsets.all(24),
+                  alignment: Alignment.bottomRight,
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.end,
                     crossAxisAlignment: CrossAxisAlignment.end,
@@ -221,6 +198,17 @@ class _CalculatorPageState extends State<CalculatorPage> {
               _buildButtons(),
             ],
           ),
+          if (_isHistoryOpen)
+            GestureDetector(
+              onTap: () => setState(() => _isHistoryOpen = false),
+              child: Container(
+                color: Colors.black.withOpacity(0.5),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: _buildHistoryPanel(),
+                ),
+              ),
+            ),
           Positioned(
             top: 20,
             left: 20,
@@ -234,60 +222,53 @@ class _CalculatorPageState extends State<CalculatorPage> {
             top: 20,
             right: 20,
             child: IconButton(
-              icon: Icon(Icons.functions,
-                  color: _isDarkMode ? Colors.white : Colors.black),
+              icon: Icon(Icons.history, color: Colors.white),
               onPressed: _toggleHistory,
             ),
           ),
-          _isHistoryOpen ? _buildHistoryPanel() : SizedBox(),
         ],
       ),
     );
   }
 
   Widget _buildHistoryPanel() {
-    return Align(
-      alignment: Alignment.centerRight,
+    return GestureDetector(
+      onHorizontalDragEnd: (details) {
+        if (details.primaryVelocity! > 0) {
+          setState(() => _isHistoryOpen = false);
+        }
+      },
       child: Container(
         width: 300,
+        padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.5),
-          borderRadius: BorderRadius.circular(15),
+          color: Colors.black.withOpacity(0.8),
+          borderRadius: BorderRadius.only(topLeft: Radius.circular(20), bottomLeft: Radius.circular(20)),
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(15),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 20, left: 8, right: 8),
-                  child: Text("History", style: TextStyle(color: Colors.white, fontSize: 20)),
-                ),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: _history.length,
-                    itemBuilder: (context, index) {
-                      return ListTile(
-                        title: Text(_history[index], style: TextStyle(color: Colors.white)),
-                        trailing: IconButton(
-                          icon: Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => _removeHistoryItem(index),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: TextButton(
-                    onPressed: _clearHistory,
-                    child: Text("Hapus semua", style: TextStyle(color: Colors.red, fontSize: 16)),
-                  ),
-                ),
-              ],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("History", style: TextStyle(fontSize: 24, color: Colors.white)),
+            Divider(color: Colors.white),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _history.length,
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    title: Text(_history[index], style: TextStyle(fontSize: 18, color: Colors.white)),
+                    trailing: IconButton(
+                      icon: Icon(Icons.delete, color: Colors.red),
+                      onPressed: () => setState(() => _history.removeAt(index)),
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
+            TextButton(
+              onPressed: _clearHistory,
+              child: Text("Clear History", style: TextStyle(color: Colors.red)),
+            ),
+          ],
         ),
       ),
     );
@@ -342,9 +323,11 @@ class _CalculatorPageState extends State<CalculatorPage> {
           children: row.map((btn) {
             if (btn == "=" && rowIndex >= 3) {
               return Expanded(
-                child: _buildButton(btn,
-                    color: const Color.fromARGB(255, 51, 119, 54),
-                    heightFactor: 1),
+                child: _buildButton(
+                  btn,
+                  color: const Color.fromARGB(255, 51, 119, 54),
+                  heightFactor: 1,
+                ),
               );
             } else if (btn.isEmpty) {
               return SizedBox(width: 0); // Empty space for alignment
@@ -353,7 +336,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
                 btn,
                 color: btn == "C"
                     ? Colors.red
-                        : const Color.fromARGB(0, 255, 255, 255),
+                    : const Color.fromARGB(0, 255, 255, 255),
               );
             }
           }).toList(),
@@ -393,4 +376,3 @@ class _CalculatorPageState extends State<CalculatorPage> {
     );
   }
 }
-
